@@ -51,7 +51,10 @@ public class SocketDal implements ISocketDal
         {
             if (this._socket == null || this._socket.isClosed()) 
             {
-                throw new IOException("Socket is not connected.");
+                result.setCode(GenerateResult.ResultCode.Warning);
+                result.setMessage("Socket is not connected.");
+                
+                return result;
             }
 
             OutputStream outputStream = this._socket.getOutputStream();
@@ -77,13 +80,13 @@ public class SocketDal implements ISocketDal
 
         try
         {
-            serverSocket = new ServerSocket(this._port);
-            System.out.println("Server listening on port: " + this._port);
-
+            serverSocket = new ServerSocket(this._port);            
+            result.setCode(GenerateResult.ResultCode.Error);
+            result.setMessage("Server listening on port: " + this._port);
             while (true)
             {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("Client connected: " + clientSocket.getInetAddress().getHostAddress());
+                result.setMessage(result.getMessage()+ "Client connected: " + clientSocket.getInetAddress().getHostAddress());
 
                 new Thread(() -> handleClient(clientSocket, listener)).start();
             }
@@ -138,6 +141,4 @@ public class SocketDal implements ISocketDal
             }
         }
     }
-
-
 }

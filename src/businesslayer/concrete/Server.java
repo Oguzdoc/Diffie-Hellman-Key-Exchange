@@ -1,10 +1,11 @@
 package businesslayer.concrete;
 
+import businesslayer.abstracts.IServer;
 import datalayer.abstracts.ISocketDal;
 import datalayer.abstracts.MessageListener;
-import datalayer.concrete.GenerateResult;
 
-public class Server {
+public class Server implements IServer
+{
 	private ISocketDal _socketDal;
 	
 	public Server(ISocketDal socketDal) 
