@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Application</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #f4f7fc;
+      }
+
+      .container {
+        width: 90%;
+        height: 70%;
+        max-width: 400px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background-color: #9b1c31;
+        color: white;
+        text-align: center;
+        padding: 15px;
+        font-size: 1.5rem;
+      }
+
+      .login-form {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .form-container {
+        display: none;
+        height: 95%;
+        flex-direction: column;
+      }
+
+      .chat-container {
+        display: none;
+        height: 95%;
+        flex-direction: column;
+      }
+
+      .form-container.active,
+      .chat-container.active {
+        display: flex;
+      }
+
+      .form-container label {
+        font-weight: bold;
+      }
+
+      .form-container input {
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        outline: none;
+        font-size: 1rem;
+      }
+
+      .form-container button {
+        background-color: #9b1c31;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+      }
+
+      .form-container button:hover {
+        background-color: #7b1224;
+      }
+
+      .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px;
+      }
+
+      .message {
+        display: flex;
+        margin-bottom: 15px;
+        align-items: center;
+      }
+
+      .message-content {
+        padding: 10px;
+        border-radius: 10px;
+        max-width: 75%;
+        word-wrap: break-word;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .message.received {
+        justify-content: flex-start;
+      }
+
+      .message.received .message-content {
+        background-color: #e0e0e0;
+        color: black;
+      }
+
+      .message.sent {
+        justify-content: flex-end;
+      }
+
+      .message.sent .message-content {
+        background-color: #9b1c31;
+        color: white;
+      }
+
+      .chat-input {
+        display: flex;
+        gap: 10px;
+        padding: 20px;
+      }
+
+      .chat-input input {
+        flex-grow: 1;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        outline: none;
+      }
+
+      .chat-input button {
+        background-color: #9b1c31;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="form-container active">
+        <div class="header">Login</div>
+        <form id="login-form" class="login-form">
+          <label for="port">Port</label>
+          <input
+            type="number"
+            id="port"
+            name="port"
+            placeholder="Port Number"
+            value="8080"
+            required
+          />
+
+          <button type="submit">Login</button>
+        </form>
+      </div>
+
+      <div class="chat-container">
+        <div class="header">Chat Screen</div>
+        <div class="chat-messages">
+          <div class="message received">
+            <div class="message-content">Hi!</div>
+          </div>
+          <div class="message sent">
+            <div class="message-content">Hi!</div>
+          </div>
+          <div class="message received">
+            <div class="message-content">How are you?</div>
+          </div>
+        </div>
+        <div class="chat-input">
+          <input type="text" id="messageInput" placeholder="Text..." />
+          <button id="sendButton">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("login-form")
+        .addEventListener("submit", function (event) {
+          event.preventDefault(); // Formun varsayılan davranışını engelle
+
+          // Login formunu ve chat ekranını seç
+          const formContainer = document.querySelector(".form-container");
+          const chatContainer = document.querySelector(".chat-container");
+
+          // Login formunu gizle, chat ekranını göster
+          formContainer.classList.remove("active");
+          chatContainer.classList.add("active");
+
+          console.log("Login successful, chat screen activated.");
+        });
+
+      document.getElementById("sendButton").addEventListener("click", () => {
+        const input = document.getElementById("messageInput");
+        const message = input.value;
+
+        if (message.trim() !== "") {
+          appendMessage("sent", message);
+
+          fetch("http://localhost:8081/sendMessage", {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: message,
+          })
+            .then((response) => response.text())
+            .then((data) => {
+              appendMessage("received", data);
+            })
+            .catch((error) => console.error("Error:", error));
+
+          input.value = "";
+        }
+      });
+
+      function appendMessage(type, text) {
+        const chatMessages = document.querySelector(".chat-messages");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${type}`;
+        const messageContent = document.createElement("div");
+        messageContent.className = "message-content";
+        messageContent.textContent = text;
+
+        messageDiv.appendChild(messageContent);
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    </script>
+  </body>
+</html>
