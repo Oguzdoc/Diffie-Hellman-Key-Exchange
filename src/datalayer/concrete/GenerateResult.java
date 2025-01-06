@@ -1,45 +1,24 @@
 package datalayer.concrete;
 
-public class GenerateResult 
-{
-    private ResultCode Code;
-    private String Message;    
-    
-    public enum ResultCode
-    {
-    Error,
-    Success,
-    Warning
+public class GenerateResult {
+    private final ResultCode code;
+    private final String message;
+
+    public enum ResultCode {
+        SUCCESS,
+        ERROR
     }
 
-    public GenerateResult() {
-        super();
-    }
-    
     public GenerateResult(ResultCode code, String message) {
-        this.Code = code;
-        this.Message = message;
-    }
-    
-    
-    public void Update(ResultCode code, String message) {
-        this.Code = code;
-        this.Message = message;
+        this.code = code;
+        this.message = message;
     }
 
     public ResultCode getCode() {
-        return Code;
-    }
-
-    public void setCode(ResultCode Code) {
-        this.Code = Code;
+        return code;
     }
 
     public String getMessage() {
-        return Message;
-    }
-
-    public void setMessage(String Message) {
-        this.Message = Message;
+        return message;
     }
 }
