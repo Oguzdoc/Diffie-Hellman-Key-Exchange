@@ -30,8 +30,8 @@ public class ClientManager implements IClientManager {
     private void receiveMessages() {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
             String message;
-            while ((message = in.readLine()) != null) {
-                System.out.println("Incoming message: " + message);
+            while ((message = in.readLine()) != null) 
+            {
                 eventListener.onMessageReceived(message);
             }
         } catch (IOException e) {
