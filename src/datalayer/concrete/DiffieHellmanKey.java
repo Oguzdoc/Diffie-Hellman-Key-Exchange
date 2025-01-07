@@ -36,7 +36,6 @@ public class DiffieHellmanKey {
     public BigInteger computeSecret(BigInteger otherPublicKey) {
     	
     	computedSecretKey = otherPublicKey.modPow(privateNumber, primeNumber);
-    	System.out.println("Result : " + computedSecretKey);
     	setComputeKeyBinary(this.computedSecretKey);
         return computedSecretKey;
     }

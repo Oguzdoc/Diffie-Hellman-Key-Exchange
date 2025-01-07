@@ -17,7 +17,6 @@ public class Oscar implements IOscar {
     public void generateKeyForClient(String clientIdentifier) {
         DiffieHellmanKey clientKey = new DiffieHellmanKey();
         clientKeys.put(clientIdentifier, clientKey);
-        System.out.println("Oscar generated publish key for " + clientIdentifier + ": " + clientKey.publish());
     }
 
     // Retrieve Oscar's publish key for a client
@@ -49,14 +48,12 @@ public class Oscar implements IOscar {
     
     @Override
     public void analyzeMessage(String message) {
-        // Optional analysis logic (e.g., logging, security validation)
-        System.out.println("[Oscar] Analyzing message: " + message);
+
     }
 
     // Cleanup keys when a client disconnects
     public void removeKeyForClient(String clientIdentifier) 
     {
         clientKeys.remove(clientIdentifier);
-        System.out.println("Oscar removed key for " + clientIdentifier);
     }
 }

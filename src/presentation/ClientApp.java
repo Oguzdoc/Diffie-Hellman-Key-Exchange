@@ -6,8 +6,10 @@ import datalayer.concrete.ClientManager;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 
-public class ClientApp {
-    public static void main(String[] args) {
+public class ClientApp 
+{
+    public static void main(String[] args) 
+    {
         CustomClientEventListener eventListener = new CustomClientEventListener();
         ClientHandler clientHandler = new ClientHandler(eventListener);
         eventListener.setClientHandler(clientHandler);
@@ -19,7 +21,12 @@ public class ClientApp {
             clientHandler.sendMessageToServer(message);
         }
     }
-
+    
+    public static void onIncomingMessage(String message) {
+        System.out.println("GELEN MESAJ:");
+        System.out.println("Mesaj: " + message);
+    }
+    
     static class CustomClientEventListener implements ClientManager.ClientEventListener {
         private ClientHandler clientHandler;
 

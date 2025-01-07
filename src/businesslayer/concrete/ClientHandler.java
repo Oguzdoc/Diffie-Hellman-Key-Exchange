@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import businesslayer.abstracts.IClientHandler;
 import datalayer.concrete.ClientManager;
 import datalayer.concrete.DiffieHellmanKey;
+import presentation.ClientApp;
 
 public class ClientHandler implements IClientHandler {
     private final ClientManager clientManager;
@@ -59,8 +60,7 @@ public class ClientHandler implements IClientHandler {
 
         			String key = this.diffieHellmanKey.getComputeKeyBinary();
 					message = des.decryptMessageFromString(message, key);
-					
-		        	System.out.println("Incoming message --> " + message);
+					ClientApp.onIncomingMessage(message);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

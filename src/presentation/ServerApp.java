@@ -7,9 +7,11 @@ import datalayer.concrete.GenerateResult;
 import datalayer.concrete.ServerManager;
 
 public class ServerApp {
-	public static ServerHandler serverHandler;
+    public static ServerHandler serverHandler;
+
     public static void main(String[] args) {
-    	serverHandler = new ServerHandler(new CustomServerEventListener());
+        boolean isOscarEnabled = true; 
+        serverHandler = new ServerHandler(new CustomServerEventListener(), isOscarEnabled);
 
         GenerateResult result = serverHandler.initializeServer(8080);
 
@@ -20,6 +22,16 @@ public class ServerApp {
         }
     }
 
+    public static void onIncomingMessage(String sender, String message) {
+        System.out.println("GELEN MESAJ:");
+        System.out.println("Gönderen: " + sender + " - Mesaj: " + message);
+    }
+
+    public static void onOutgoingMessage(String recipient, String message) {
+        System.out.println("GÖNDERİLEN MESAJ:");
+        System.out.println("Alıcı: " + recipient + " - Mesaj: " + message);
+    }
+
     static class CustomServerEventListener implements ServerManager.ServerEventListener {
         @Override
         public void onServerStarted(int port) {
@@ -28,24 +40,22 @@ public class ServerApp {
 
         @Override
         public void onClientConnected(String clientIdentifier) {
-        	serverHandler.onClientConnected(clientIdentifier);
+            serverHandler.onClientConnected(clientIdentifier);
             System.out.println(clientIdentifier + " joined the server.");
         }
 
         @Override
         public void onMessageReceived(String clientIdentifier, String message) {
-            System.out.println("Message received from " + clientIdentifier + ": " + message);
             try {
-				serverHandler.onMessageReceived(clientIdentifier, message);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+                serverHandler.onMessageReceived(clientIdentifier, message);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
         public void onClientDisconnected(String clientIdentifier) {
-        	serverHandler.onClientDisconnected(clientIdentifier);
+            serverHandler.onClientDisconnected(clientIdentifier);
             System.out.println(clientIdentifier + " disconnected.");
         }
     }
