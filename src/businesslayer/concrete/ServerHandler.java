@@ -1,36 +1,31 @@
 package businesslayer.concrete;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.Random;
-
-import businesslayer.abstracts.IServerHandler;
-import datalayer.concrete.GenerateResult;
 import datalayer.concrete.ServerManager;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import java.util.Base64;
 
-public class ServerHandler implements IServerHandler {
+public class ServerHandler {
     private final ServerManager serverManager;
     private final Oscar oscar;
-    private final DataEncryptionStandard des;
+    private SecretKey secretKey; // Secret key for DES encryption
     
     public ServerHandler(ServerManager.ServerEventListener eventListener) {
-        this.serverManager = new ServerManager(eventListener);
-        this.oscar = new Oscar(); // Oscar initialized with its own key
-        this.des = new DataEncryptionStandard();
+        serverManager = new ServerManager(eventListener);
+        oscar = new Oscar();
+        
+        try {
+            // Generate DES key on initialization
+            javax.crypto.KeyGenerator keyGen = javax.crypto.KeyGenerator.getInstance("DES");
+            keyGen.init(56); // DES key size is 56 bits
+            this.secretKey = keyGen.generateKey();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    @Override
-    public GenerateResult initializeServer(int port) {
-        return serverManager.startServer(port);
-    }
-
-    public void onClientConnected(String clientIdentifier) {
-        oscar.generateKeyForClient(clientIdentifier);
-    }
-
-    public void onMessageReceived(String sender, String message) throws IOException 
-    {
-    	
+    // This method is called when the server receives a message from a client
+    public void onMessageReceived(String sender, String message) {
         int separatorIndex = message.lastIndexOf("#");
         if (separatorIndex > 0) {
             String messageContent = message.substring(0, separatorIndex).trim();
@@ -38,57 +33,78 @@ public class ServerHandler implements IServerHandler {
 
             System.out.println("Parsed message content: " + messageContent);
             System.out.println("Parsed sender publish key: " + senderPublishKey);
-            
+
             String messageSender = findSender(sender);
             String key = "0";
-            String IncommingMessage = "";
-            
-            if(messageSender != null) {
-            	
-            	key = oscar.setOscarComputedKeyForClient(messageSender, BigInteger.valueOf(Long.parseLong(senderPublishKey)));
-            	
-            	if(!messageContent.trim().isEmpty()) 
-            	{
-            		IncommingMessage = des.decryptMessageFromString(messageContent, key);
-            		System.out.println("Incomming Message = "+ IncommingMessage);
-            		IncommingMessage = manipulateTheMessage(IncommingMessage);
-            	}
+            String incomingMessage = "";
+
+            if (messageSender != null) {
+                key = oscar.setOscarComputedKeyForClient(messageSender, new java.math.BigInteger(senderPublishKey));
+                
+                // Decrypt the incoming message
+                if (!messageContent.trim().isEmpty()) {
+                    incomingMessage = decryptMessage(messageContent, key);
+                    System.out.println("Incoming Message: " + incomingMessage);
+                    incomingMessage = manipulateTheMessage(incomingMessage);
+                }
             }
-            
+
             String recipient = findRecipient(sender);
-            
-            if (recipient == null) 
-            {
+            if (recipient == null) {
                 System.err.println("No other clients connected to forward the message.");
                 return;
             }
 
-			String recipientPublishKey = oscar.getOscarPublishKeyForClient(recipient);
-			String recipientKey = oscar.getOscarComputedKeyForClient(recipient);
+            String recipientPublishKey = oscar.getOscarPublishKeyForClient(recipient);
+            String recipientKey = oscar.getOscarComputedKeyForClient(recipient);
 
-            if(!IncommingMessage.trim().isEmpty()) {
-            	IncommingMessage = IncommingMessage.trim();
-                messageContent = des.encryptMessageToString(IncommingMessage, recipientKey);
+            if (!incomingMessage.trim().isEmpty()) {
+                incomingMessage = incomingMessage.trim();
+                messageContent = encryptMessage(incomingMessage, recipientKey); // Encrypt message before sending
             }
 
-            if (recipientPublishKey != null) 
-            {
+            if (recipientPublishKey != null) {
                 String forwardedMessage = messageContent + " #" + recipientPublishKey;
                 serverManager.sendMessageToClient(recipient, forwardedMessage);
-            } 
-            else 
+            } else {
                 System.err.println("Recipient publish key not found for: " + recipient);
-        } 
-        else 
+            }
+        } else {
             System.err.println("Invalid message format from " + sender + ": " + message);
+        }
     }
-    
-    private String manipulateTheMessage(String message) 
-    {
-        Random random = new Random();
 
+    // Method to encrypt the message using DES encryption
+    private String encryptMessage(String message, String recipientKey) {
+        try {
+            Cipher cipher = Cipher.getInstance("DES");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey); // Use the server's DES key for encryption
+            byte[] encryptedBytes = cipher.doFinal(message.getBytes());
+            return Base64.getEncoder().encodeToString(encryptedBytes); // Return Base64 encoded encrypted message
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // Method to decrypt the incoming message using DES decryption
+    private String decryptMessage(String encryptedMessage, String key) {
+        try {
+            Cipher cipher = Cipher.getInstance("DES");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey); // Use the server's DES key for decryption
+            byte[] decodedBytes = Base64.getDecoder().decode(encryptedMessage);
+            byte[] decryptedBytes = cipher.doFinal(decodedBytes);
+            return new String(decryptedBytes);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // This method manipulates the incoming message (e.g., changing digits to random ones)
+    private String manipulateTheMessage(String message) {
+        java.util.Random random = new java.util.Random();
         StringBuilder manipulatedMessage = new StringBuilder();
-
         for (char c : message.toCharArray()) {
             if (Character.isDigit(c)) {
                 int randomDigit = random.nextInt(10);
@@ -97,36 +113,30 @@ public class ServerHandler implements IServerHandler {
                 manipulatedMessage.append(c);
             }
         }
-
         return manipulatedMessage.toString();
     }
-    
-    private String findRecipient(String sender) 
-    {
-        for (String client : serverManager.getConnectedClients()) 
-        {
-            if (!client.equals(sender)) 
-            {
+
+    // This method finds the recipient of the message based on the sender's identifier
+    private String findRecipient(String sender) {
+        for (String client : serverManager.getConnectedClients()) {
+            if (!client.equals(sender)) {
                 return client;
             }
         }
-        
         return null;
     }
-    
-    private String findSender(String sender) 
-    {
-        for (String client : serverManager.getConnectedClients()) 
-        {
-            if (client.equals(sender)) 
-            {
+
+    // This method finds the sender of the message
+    private String findSender(String sender) {
+        for (String client : serverManager.getConnectedClients()) {
+            if (client.equals(sender)) {
                 return client;
             }
         }
-        
         return null;
     }
-    
+
+    // Cleanup keys when a client disconnects
     public void onClientDisconnected(String clientIdentifier) {
         oscar.removeKeyForClient(clientIdentifier);
     }
