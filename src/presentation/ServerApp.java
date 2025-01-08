@@ -1,54 +1,72 @@
 package presentation;
 
-import java.io.IOException;
-
 import businesslayer.concrete.ServerHandler;
 import datalayer.concrete.GenerateResult;
-import datalayer.concrete.ServerManager;
 
-public class ServerApp {
-    public static ServerHandler serverHandler;
+import javax.swing.*;
+import java.awt.*;
 
-    public static void main(String[] args) {
-        boolean isOscarEnabled = true; 
+public class ServerApp extends JFrame {
+    private static JTextArea logArea; // Gelen ve giden mesajların gösterileceği alan
+    private final ServerHandler serverHandler;
+
+    public ServerApp() {
+        setTitle("Server Messaging App");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(500, 600);
+        setLayout(new BorderLayout());
+
+        logArea = new JTextArea();
+        logArea.setEditable(false);
+        logArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        add(new JScrollPane(logArea), BorderLayout.CENTER);
+
+        boolean isOscarEnabled = true;
         serverHandler = new ServerHandler(new CustomServerEventListener(), isOscarEnabled);
 
         GenerateResult result = serverHandler.initializeServer(8080);
-
         if (result.getCode() == GenerateResult.ResultCode.SUCCESS) {
-            System.out.println("Server is running.");
+            logArea.append("Server is running.\n");
         } else {
-            System.err.println("Error: " + result.getMessage());
+            logArea.append("Error: " + result.getMessage() + "\n");
         }
+
+        setVisible(true);
     }
 
     public static void onIncomingMessage(String sender, String message) {
-        System.out.println("GELEN MESAJ:");
-        System.out.println("Gönderen: " + sender + " - Mesaj: " + message);
+        SwingUtilities.invokeLater(() -> {
+            logArea.append("GELEN MESAJ: Gönderen: " + sender + " - Mesaj: " + message + "\n");
+        });
     }
 
     public static void onOutgoingMessage(String recipient, String message) {
-        System.out.println("GÖNDERİLEN MESAJ:");
-        System.out.println("Alıcı: " + recipient + " - Mesaj: " + message);
+        SwingUtilities.invokeLater(() -> {
+            logArea.append("GÖNDERİLEN MESAJ: Alıcı: " + recipient + " - Mesaj: " + message + "\n");
+        });
     }
 
-    static class CustomServerEventListener implements ServerManager.ServerEventListener {
+    class CustomServerEventListener implements datalayer.concrete.ServerManager.ServerEventListener {
         @Override
         public void onServerStarted(int port) {
-            System.out.println("Server started on port: " + port);
+            SwingUtilities.invokeLater(() -> {
+                logArea.append("Server started on port: " + port + "\n");
+            });
         }
 
         @Override
         public void onClientConnected(String clientIdentifier) {
             serverHandler.onClientConnected(clientIdentifier);
-            System.out.println(clientIdentifier + " joined the server.");
+            SwingUtilities.invokeLater(() -> {
+                logArea.append(clientIdentifier + " joined the server.\n");
+            });
         }
 
         @Override
         public void onMessageReceived(String clientIdentifier, String message) {
             try {
                 serverHandler.onMessageReceived(clientIdentifier, message);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -56,7 +74,13 @@ public class ServerApp {
         @Override
         public void onClientDisconnected(String clientIdentifier) {
             serverHandler.onClientDisconnected(clientIdentifier);
-            System.out.println(clientIdentifier + " disconnected.");
+            SwingUtilities.invokeLater(() -> {
+                logArea.append(clientIdentifier + " disconnected.\n");
+            });
         }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(ServerApp::new);
     }
 }
