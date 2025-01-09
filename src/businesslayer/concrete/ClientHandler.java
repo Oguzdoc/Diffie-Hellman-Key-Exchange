@@ -1,90 +1,135 @@
 package businesslayer.concrete;
 
 import datalayer.concrete.ClientManager;
+import datalayer.concrete.DiffieHellmanKey;
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class ClientHandler {
-    private boolean isConnected = false; // Flag to track connection status
-    private final ClientManager clientManager; // The object that handles connection and communication with the server
-    private SecretKey secretKey; // The secret key for DES encryption
+    private boolean isConnected = false;
+    private final ClientManager clientManager;
+    private SecretKey secretKey;
+    private final DiffieHellmanKey diffieHellmanKey;
     
     public ClientHandler(ClientManager.ClientEventListener eventListener) {
         clientManager = new ClientManager(eventListener);
-        try {
-            // Generate DES key on initialization
-            KeyGenerator keyGen = KeyGenerator.getInstance("DES");
-            keyGen.init(56); // DES key size is 56 bits
-            this.secretKey = keyGen.generateKey();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        diffieHellmanKey = new DiffieHellmanKey();
     }
-    
+
     // This method is called when the connection to the server is established
     public void onConnectedToServer() {
-        isConnected = true; // Set the flag to true when connected to the server
+        isConnected = true;
         System.out.println("Successfully connected to the server.");
     }
-    
-    // This method sends a message to the server if the connection is established
+
+    // Helper method to create DES key from Diffie-Hellman key
+    private void generateDESKey(String dhKey) {
+        try {
+            // Get bytes from the Diffie-Hellman key
+            byte[] keyBytes = dhKey.getBytes(StandardCharsets.UTF_8);
+            
+            // Use SHA-1 to get a consistent key size
+            MessageDigest sha = MessageDigest.getInstance("SHA-1");
+            keyBytes = sha.digest(keyBytes);
+            
+            // DES needs exactly 8 bytes (64 bits), take first 8 bytes
+            keyBytes = Arrays.copyOf(keyBytes, 8);
+            
+            // Create SecretKey for DES
+            this.secretKey = new SecretKeySpec(keyBytes, "DES");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // This method sends a message to the server
     public void sendMessageToServer(String message) {
-        if (isConnected) {
-            // Encrypt the message before sending
-            String encryptedMessage = encryptMessage(message);
-            System.out.println("Sending encrypted message to server: " + encryptedMessage);
-            clientManager.sendMessage(encryptedMessage);  // Sending the encrypted message to the server
-        } else {
-            // Error message when no connection is available
+        if (!isConnected) {
             System.err.println("Cannot send message. No connection to server.");
+            return;
+        }
+
+        try {
+            String dhKey = diffieHellmanKey.getComputeKeyBinary();
+            if (secretKey == null) {
+                generateDESKey(dhKey);
+            }
+
+            // Trim the message and check if it's not empty
+            message = message.trim();
+            if (!message.isEmpty()) {
+                // Encrypt the message
+                String encryptedMessage = encryptMessage(message);
+                // Append the public key
+                String fullMessage = encryptedMessage + "#" + diffieHellmanKey.publish();
+                clientManager.sendMessage(fullMessage);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    // This method processes the message received from the server
+    // Method to encrypt message using DES
+    private String encryptMessage(String message) throws Exception {
+        if (secretKey == null) {
+            throw new IllegalStateException("Secret key not initialized");
+        }
+
+        Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        byte[] encryptedBytes = cipher.doFinal(message.getBytes(StandardCharsets.UTF_8));
+        return Base64.getEncoder().encodeToString(encryptedBytes);
+    }
+
+    // Method to decrypt message using DES
+    private String decryptMessage(String encryptedMessage) throws Exception {
+        if (secretKey == null) {
+            throw new IllegalStateException("Secret key not initialized");
+        }
+
+        Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+        byte[] decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedMessage));
+        return new String(decryptedBytes, StandardCharsets.UTF_8);
+    }
+
+    // This method processes messages received from the server
     public void onMessageReceived(String message) {
-        if (isConnected) {
-            // Decrypt the received message
-            String decryptedMessage = decryptMessage(message);
-            System.out.println("Message received from server: " + decryptedMessage);
-            // Further processing of the decrypted message can be done here
-        } else {
-            // Error message when no connection is available
+        if (!isConnected) {
             System.err.println("Cannot receive message. No connection to server.");
+            return;
         }
-    }
 
-    // Method to encrypt a message using DES encryption
-    private String encryptMessage(String message) {
         try {
-            Cipher cipher = Cipher.getInstance("DES");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-            byte[] encryptedBytes = cipher.doFinal(message.getBytes());
-            return Base64.getEncoder().encodeToString(encryptedBytes);
+            if (message.contains("#")) {
+                System.out.println("Incoming message --> " + message);
+                String[] parts = message.split("#");
+                String encryptedContent = parts[0];
+                String publicKey = parts[1];
+
+                // Update Diffie-Hellman key and generate new DES key
+                diffieHellmanKey.computeSecret(java.math.BigInteger.valueOf(Long.parseLong(publicKey)));
+                generateDESKey(diffieHellmanKey.getComputeKeyBinary());
+
+                if (!encryptedContent.trim().isEmpty()) {
+                    // Decrypt the message
+                    String decryptedMessage = decryptMessage(encryptedContent);
+                    System.out.println("Incoming message --> " + decryptedMessage);
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
-        }
-    }
-
-    // Method to decrypt a message using DES decryption
-    private String decryptMessage(String encryptedMessage) {
-        try {
-            Cipher cipher = Cipher.getInstance("DES");
-            cipher.init(Cipher.DECRYPT_MODE, secretKey);
-            byte[] decodedBytes = Base64.getDecoder().decode(encryptedMessage);
-            byte[] decryptedBytes = cipher.doFinal(decodedBytes);
-            return new String(decryptedBytes);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
         }
     }
 
     // This method is called when the connection to the server is lost
     public void onDisconnectedFromServer() {
-        isConnected = false; // Set the flag to false when disconnected from the server
+        isConnected = false;
         System.out.println("Disconnected from the server.");
     }
 }

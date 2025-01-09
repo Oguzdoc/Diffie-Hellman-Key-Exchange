@@ -3,28 +3,43 @@ package businesslayer.concrete;
 import datalayer.concrete.ServerManager;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class ServerHandler {
     private final ServerManager serverManager;
     private final Oscar oscar;
-    private SecretKey secretKey; // Secret key for DES encryption
+    private SecretKey secretKey;
     
     public ServerHandler(ServerManager.ServerEventListener eventListener) {
         serverManager = new ServerManager(eventListener);
         oscar = new Oscar();
-        
+    }
+
+    // Helper method to create DES key from Diffie-Hellman key
+    private void generateDESKey(String dhKey) {
         try {
-            // Generate DES key on initialization
-            javax.crypto.KeyGenerator keyGen = javax.crypto.KeyGenerator.getInstance("DES");
-            keyGen.init(56); // DES key size is 56 bits
-            this.secretKey = keyGen.generateKey();
+            // Get bytes from the Diffie-Hellman key
+            byte[] keyBytes = dhKey.getBytes(StandardCharsets.UTF_8);
+            
+            // Use SHA-1 to get a consistent key size
+            MessageDigest sha = MessageDigest.getInstance("SHA-1");
+            keyBytes = sha.digest(keyBytes);
+            
+            // DES needs exactly 8 bytes (64 bits), take first 8 bytes
+            keyBytes = Arrays.copyOf(keyBytes, 8);
+            
+            // Create SecretKey for DES
+            this.secretKey = new SecretKeySpec(keyBytes, "DES");
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    // This method is called when the server receives a message from a client
+    // This method is called when the server receives a message
     public void onMessageReceived(String sender, String message) {
         int separatorIndex = message.lastIndexOf("#");
         if (separatorIndex > 0) {
@@ -40,12 +55,17 @@ public class ServerHandler {
 
             if (messageSender != null) {
                 key = oscar.setOscarComputedKeyForClient(messageSender, new java.math.BigInteger(senderPublishKey));
-                
+                generateDESKey(key);
+
                 // Decrypt the incoming message
                 if (!messageContent.trim().isEmpty()) {
-                    incomingMessage = decryptMessage(messageContent, key);
-                    System.out.println("Incoming Message: " + incomingMessage);
-                    incomingMessage = manipulateTheMessage(incomingMessage);
+                    try {
+                        incomingMessage = decryptMessage(messageContent);
+                        System.out.println("Incoming Message = " + incomingMessage);
+                        incomingMessage = manipulateTheMessage(incomingMessage);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }
 
@@ -59,8 +79,12 @@ public class ServerHandler {
             String recipientKey = oscar.getOscarComputedKeyForClient(recipient);
 
             if (!incomingMessage.trim().isEmpty()) {
-                incomingMessage = incomingMessage.trim();
-                messageContent = encryptMessage(incomingMessage, recipientKey); // Encrypt message before sending
+                generateDESKey(recipientKey);
+                try {
+                    messageContent = encryptMessage(incomingMessage.trim());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 
             if (recipientPublishKey != null) {
@@ -74,34 +98,31 @@ public class ServerHandler {
         }
     }
 
-    // Method to encrypt the message using DES encryption
-    private String encryptMessage(String message, String recipientKey) {
-        try {
-            Cipher cipher = Cipher.getInstance("DES");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey); // Use the server's DES key for encryption
-            byte[] encryptedBytes = cipher.doFinal(message.getBytes());
-            return Base64.getEncoder().encodeToString(encryptedBytes); // Return Base64 encoded encrypted message
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+    // Method to encrypt message using DES
+    private String encryptMessage(String message) throws Exception {
+        if (secretKey == null) {
+            throw new IllegalStateException("Secret key not initialized");
         }
+
+        Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        byte[] encryptedBytes = cipher.doFinal(message.getBytes(StandardCharsets.UTF_8));
+        return Base64.getEncoder().encodeToString(encryptedBytes);
     }
 
-    // Method to decrypt the incoming message using DES decryption
-    private String decryptMessage(String encryptedMessage, String key) {
-        try {
-            Cipher cipher = Cipher.getInstance("DES");
-            cipher.init(Cipher.DECRYPT_MODE, secretKey); // Use the server's DES key for decryption
-            byte[] decodedBytes = Base64.getDecoder().decode(encryptedMessage);
-            byte[] decryptedBytes = cipher.doFinal(decodedBytes);
-            return new String(decryptedBytes);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+    // Method to decrypt message using DES
+    private String decryptMessage(String encryptedMessage) throws Exception {
+        if (secretKey == null) {
+            throw new IllegalStateException("Secret key not initialized");
         }
+
+        Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+        byte[] decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedMessage));
+        return new String(decryptedBytes, StandardCharsets.UTF_8);
     }
 
-    // This method manipulates the incoming message (e.g., changing digits to random ones)
+    // This method manipulates the incoming message
     private String manipulateTheMessage(String message) {
         java.util.Random random = new java.util.Random();
         StringBuilder manipulatedMessage = new StringBuilder();
@@ -116,7 +137,6 @@ public class ServerHandler {
         return manipulatedMessage.toString();
     }
 
-    // This method finds the recipient of the message based on the sender's identifier
     private String findRecipient(String sender) {
         for (String client : serverManager.getConnectedClients()) {
             if (!client.equals(sender)) {
@@ -126,7 +146,6 @@ public class ServerHandler {
         return null;
     }
 
-    // This method finds the sender of the message
     private String findSender(String sender) {
         for (String client : serverManager.getConnectedClients()) {
             if (client.equals(sender)) {
@@ -136,7 +155,6 @@ public class ServerHandler {
         return null;
     }
 
-    // Cleanup keys when a client disconnects
     public void onClientDisconnected(String clientIdentifier) {
         oscar.removeKeyForClient(clientIdentifier);
     }
