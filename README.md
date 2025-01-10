@@ -8,9 +8,9 @@ This project implements the Diffie-Hellman Key Exchange algorithm in Java. It se
 The Diffie-Hellman Key Exchange algorithm establishes a shared secret key between two parties over a public network. This project uses Java to implement the algorithm and provides encryption and decryption features using the derived key.
 
 ### Key Features
-- **Key Exchange:**: Securely exchanges keys between Alice and Bob using large prime numbers and modular arithmetic.
+- **Key Exchange**: Securely exchanges keys between Alice and Bob using large prime numbers and modular arithmetic.
 - **Symmetric Encryption**: Encrypts and decrypts messages using the shared key.
-- **Client-Server Communication:**: Simulates a messaging system where multiple clients communicate through a server.
+- **Client-Server Communication**: Simulates a messaging system where multiple clients communicate through a server.
 - **Secure Messaging**: Messages are encrypted before being sent, ensuring privacy over the network.
 
 ---
