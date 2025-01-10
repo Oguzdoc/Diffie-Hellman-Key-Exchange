@@ -1,1 +1,43 @@
-/bin/
+# Maven target directory
+/target/
+
+# Gradle build directory
+/build/
+
+# Eclipse specific files
+.classpath
+.project
+.settings/
+
+# IntelliJ IDEA specific files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Log files
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Java compiled files
+*.class
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Ignore JARs and WARs (optional)
+*.jar
+*.war
+*.ear
+
+# Ignore generated files
+*.generated
+*.metadata/
+
+# Ignore all hidden files and directories
+.*
