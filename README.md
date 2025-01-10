@@ -35,7 +35,31 @@ PublicKey = (g ^ PrivateKey) mod p
 
 ## Project Structure
 
-src/ ├── presentation/ # GUI and client-server interfaces │ ├── ServerApp.java # Server-side application │ ├── ClientApp.java # Client-side application ├── businesslayer/ # Business logic and encryption mechanisms │ ├── abstracts/ # Interfaces │ │ ├── IClientHandler.java │ │ ├── IOscar.java │ │ ├── IServerHandler.java │ └── concrete/ # Implementations │ ├── ClientHandler.java │ ├── DataEncryptionStandard.java │ ├── Oscar.java │ ├── ServerHandler.java ├── datalayer/ # Data access and management │ ├── abstracts/ # Interfaces │ │ ├── IClientManager.java │ │ ├── IServerManager.java │ └── concrete/ # Implementations │ ├── ClientManager.java │ ├── DiffieHellmanKey.java │ ├── GenerateResult.java │ ├── ServerManager.java │ ├── ClientData.java └── .gitignore # Git ignore rules
+src/
+├── presentation/               # GUI and client-server interfaces
+│   ├── ServerApp.java          # Server-side application
+│   ├── ClientApp.java          # Client-side application
+├── businesslayer/              # Business logic and encryption mechanisms
+│   ├── abstracts/              # Interfaces
+│   │   ├── IClientHandler.java
+│   │   ├── IOscar.java
+│   │   ├── IServerHandler.java
+│   └── concrete/               # Implementations
+│       ├── ClientHandler.java
+│       ├── DataEncryptionStandard.java
+│       ├── Oscar.java
+│       ├── ServerHandler.java
+├── datalayer/                  # Data access and management
+│   ├── abstracts/              # Interfaces
+│   │   ├── IClientManager.java
+│   │   ├── IServerManager.java
+│   └── concrete/               # Implementations
+│       ├── ClientManager.java
+│       ├── DiffieHellmanKey.java
+│       ├── GenerateResult.java
+│       ├── ServerManager.java
+│       ├── ClientData.java
+└── .gitignore                  # Git ignore rules
 
 ---
 
