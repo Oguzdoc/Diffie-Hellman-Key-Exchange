@@ -5,9 +5,13 @@ import businesslayer.concrete.ClientHandler;
 import datalayer.concrete.ClientManager;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -16,50 +20,111 @@ import java.util.concurrent.CompletableFuture;
  */
 public class ClientApp extends JFrame
 {
-    private static JTextArea chatArea; // Area to display chat messages
-    private final JTextField messageField;
-    private final IClientHandler clientHandler; // Use interface for abstraction
+    private static int _height = 700;
+    private static int _width = 450;
+    private static JPanel chatArea; 
+    JTextField textField;
+    static Box vertical = Box.createVerticalBox();
+    private final IClientHandler clientHandler;
 
     public ClientApp()
     {
-        setTitle("Client Messaging App");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(500, 600);
-        setLayout(new BorderLayout());
+        setSize(_width, _height);
+        setLayout(null);
 
-        chatArea = new JTextArea();
-        chatArea.setEditable(false);
-        chatArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
-        add(new JScrollPane(chatArea), BorderLayout.CENTER);
+        JPanel p1 = new JPanel();
+        p1.setBackground(new Color(128, 0, 0));        
+        p1.setBounds(0, 0, _width, 70);
+        p1.setLayout(null);
+        add(p1);
 
-        messageField = new JTextField();
+        JLabel title = new JLabel("CLIENT MESSAGING APP", SwingConstants.CENTER);
+        title.setBounds(0, 0, _width, 70);
+        title.setForeground(Color.white);
+        title.setFont(new Font("SAN_SERIF", Font.BOLD, 18));
+        p1.add(title);
+
+        chatArea = new JPanel();
+        chatArea.setLayout(new BorderLayout());
+
+        JScrollPane scrollPane = new JScrollPane(chatArea);
+        scrollPane.setBounds(5, 75, _width - 10, _height - 155);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        add(scrollPane);
+
+        textField = new JTextField();
+        textField.setBounds(5, 625, 310, 40);
+        textField.setFont(new Font("SAN_SERIF", Font.PLAIN, 16));
+        add(textField);
+
         JButton sendButton = new JButton("Send");
-
-        JPanel inputPanel = new JPanel(new BorderLayout());
-        inputPanel.add(messageField, BorderLayout.CENTER);
-        inputPanel.add(sendButton, BorderLayout.EAST);
-        add(inputPanel, BorderLayout.SOUTH);
+        sendButton.setBounds(320, 625, 123, 40);
+        sendButton.setFont(new Font("SAN_SERIF", Font.PLAIN, 16));
+        add(sendButton);
 
         CustomClientEventListener eventListener = new CustomClientEventListener();
         clientHandler = new ClientHandler(eventListener);
         eventListener.setClientHandler(clientHandler);
 
-        sendButton.addActionListener(new ActionListener()
-        {
+        sendButton.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e)
-            {
-                String message = messageField.getText().trim();
-                if (!message.isEmpty())
-                {
+            public void actionPerformed(ActionEvent e) {
+                String message = textField.getText().trim();
+                if (!message.isEmpty()) {
                     clientHandler.sendMessageToServer(message);
-                    chatArea.append("YOU: " + message + "\n");
-                    messageField.setText("");
+                    JPanel p2 = formatLabel(message, Color.gray);
+
+                    JPanel right = new JPanel(new BorderLayout());
+                    right.add(p2, BorderLayout.LINE_END);
+                    vertical.add(right);
+                    vertical.add(Box.createVerticalStrut(15));
+
+                    chatArea.add(vertical, BorderLayout.PAGE_START);
+
+                    textField.setText("");
+
+                    chatArea.revalidate();
+                    chatArea.repaint();
+
+                    SwingUtilities.invokeLater(() -> scrollPane.getVerticalScrollBar().setValue(scrollPane.getVerticalScrollBar().getMaximum()));
                 }
             }
         });
 
+        setResizable(false);
         setVisible(true);
+    }
+
+
+    /**
+     * This method creates a JPanel containing a formatted text label and a timestamp, 
+     * with customizable background color and predefined styles for layout, font, and spacing.
+     * @param out The message text to display in the label.
+     * @param backgroundColor The background color for the message label.
+     */
+    public static JPanel formatLabel(String out, Color backgroundColor) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+        JLabel output = new JLabel("<html><p style=\"width: 150px\">" + out + "</p></html>");
+        output.setFont(new Font("SAN SERIF", Font.PLAIN, 16));
+        output.setBackground(backgroundColor);
+        output.setOpaque(true);
+        output.setBorder(new EmptyBorder(15, 15, 15, 50));
+
+        panel.add(output);
+
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
+
+        JLabel time = new JLabel();
+        time.setText(sdf.format(cal.getTime()));
+
+        panel.add(time);
+
+        return panel;
     }
 
     /**
@@ -67,10 +132,22 @@ public class ClientApp extends JFrame
      *
      * @param message The received message.
      */
-    public static void onIncomingMessage(String message)
-    {
+    public static void onIncomingMessage(String message) {
         SwingUtilities.invokeLater(() -> {
-            chatArea.append("SERVER: " + message + "\n");
+            JPanel p2 = formatLabel(message, Color.lightGray);
+    
+            JPanel right = new JPanel(new BorderLayout());
+            right.add(p2, BorderLayout.LINE_START);
+            vertical.add(right);
+            vertical.add(Box.createVerticalStrut(15));
+    
+            chatArea.add(vertical, BorderLayout.PAGE_START);
+    
+            chatArea.revalidate();
+            chatArea.repaint();
+    
+            JScrollPane scrollPane = (JScrollPane) chatArea.getParent().getParent();
+            SwingUtilities.invokeLater(() -> scrollPane.getVerticalScrollBar().setValue(scrollPane.getVerticalScrollBar().getMaximum()));
         });
     }
 
@@ -87,19 +164,24 @@ public class ClientApp extends JFrame
         }
 
         @Override
-        public void onConnectedToServer()
-        {
+        public void onConnectedToServer() {
             SwingUtilities.invokeLater(() -> {
-                chatArea.append("Connected to the server.\n");
+                JPanel p2 = formatLabel("Connected to the server", Color.white);
+
+                JPanel right = new JPanel(new BorderLayout());
+                right.add(p2, BorderLayout.LINE_END);
+                vertical.add(right);
+                vertical.add(Box.createVerticalStrut(15));
+
+                chatArea.add(vertical, BorderLayout.PAGE_START);
+                chatArea.revalidate();
+                chatArea.repaint();
             });
             CompletableFuture.runAsync(() -> {
-                try
-                {
+                try {
                     Thread.sleep(2000);
-                    clientHandler.sendMessageToServer(""); // Send empty message to trigger key sharing
-                } 
-                catch (InterruptedException e)
-                {
+                    clientHandler.sendMessageToServer("");
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             });
