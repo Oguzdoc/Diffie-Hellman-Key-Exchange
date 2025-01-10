@@ -7,14 +7,29 @@ import java.net.*;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * The ServerManager class handles server-side operations such as
+ * managing client connections and forwarding messages.
+ */
 public class ServerManager implements IServerManager {
     private final ConcurrentHashMap<String, PrintWriter> clients = new ConcurrentHashMap<>();
     private final ServerEventListener eventListener;
 
+    /**
+     * Constructor to initialize the ServerManager with an event listener.
+     *
+     * @param eventListener The listener for server events.
+     */
     public ServerManager(ServerEventListener eventListener) {
         this.eventListener = eventListener;
     }
 
+    /**
+     * Starts the server on the specified port and begins accepting client connections.
+     *
+     * @param port The port to start the server on.
+     * @return A GenerateResult indicating the success or failure of the operation.
+     */
     @Override
     public GenerateResult startServer(int port) {
         try {
@@ -27,6 +42,11 @@ public class ServerManager implements IServerManager {
         }
     }
 
+    /**
+     * Accepts incoming client connections and starts a new thread for each client.
+     *
+     * @param serverSocket The server socket for accepting connections.
+     */
     private void acceptClients(ServerSocket serverSocket) {
         try {
             while (true) {
@@ -39,6 +59,12 @@ public class ServerManager implements IServerManager {
         }
     }
 
+    /**
+     * Handles communication with a connected client.
+     *
+     * @param clientSocket     The socket connected to the client.
+     * @param clientIdentifier The unique identifier for the client.
+     */
     private void handleClient(Socket clientSocket, String clientIdentifier) {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
              PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
@@ -58,6 +84,12 @@ public class ServerManager implements IServerManager {
         }
     }
 
+    /**
+     * Sends a message to the specified client.
+     *
+     * @param clientIdentifier The identifier of the client.
+     * @param message          The message to send.
+     */
     @Override
     public void sendMessageToClient(String clientIdentifier, String message) {
         if (clients.containsKey(clientIdentifier)) {
@@ -66,11 +98,19 @@ public class ServerManager implements IServerManager {
             System.err.println("Client " + clientIdentifier + " not found.");
         }
     }
-    
+
+    /**
+     * Retrieves the set of currently connected clients.
+     *
+     * @return A set of client identifiers.
+     */
     public Set<String> getConnectedClients() {
         return clients.keySet();
     }
-    
+
+    /**
+     * Interface for handling server events such as client connections and messages.
+     */
     public interface ServerEventListener {
         void onServerStarted(int port);
 

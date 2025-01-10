@@ -1,5 +1,6 @@
 package presentation;
 
+import businesslayer.abstracts.IClientHandler;
 import businesslayer.concrete.ClientHandler;
 import datalayer.concrete.ClientManager;
 
@@ -9,13 +10,18 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.concurrent.CompletableFuture;
 
-public class ClientApp extends JFrame 
+/**
+ * The ClientApp class represents the client-side graphical user interface
+ * for sending and receiving messages to/from the server.
+ */
+public class ClientApp extends JFrame
 {
-    private static JTextArea chatArea; 
+    private static JTextArea chatArea; // Area to display chat messages
     private final JTextField messageField;
-    private final ClientHandler clientHandler;
+    private final IClientHandler clientHandler; // Use interface for abstraction
 
-    public ClientApp() {
+    public ClientApp()
+    {
         setTitle("Client Messaging App");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(500, 600);
@@ -38,13 +44,16 @@ public class ClientApp extends JFrame
         clientHandler = new ClientHandler(eventListener);
         eventListener.setClientHandler(clientHandler);
 
-        sendButton.addActionListener(new ActionListener() {
+        sendButton.addActionListener(new ActionListener()
+        {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void actionPerformed(ActionEvent e)
+            {
                 String message = messageField.getText().trim();
-                if (!message.isEmpty()) {
+                if (!message.isEmpty())
+                {
                     clientHandler.sendMessageToServer(message);
-                    chatArea.append("SEN: " + message + "\n");
+                    chatArea.append("YOU: " + message + "\n");
                     messageField.setText("");
                 }
             }
@@ -53,41 +62,58 @@ public class ClientApp extends JFrame
         setVisible(true);
     }
 
-    public static void onIncomingMessage(String message) {
+    /**
+     * Displays an incoming message in the chat area.
+     *
+     * @param message The received message.
+     */
+    public static void onIncomingMessage(String message)
+    {
         SwingUtilities.invokeLater(() -> {
             chatArea.append("SERVER: " + message + "\n");
         });
     }
 
-    static class CustomClientEventListener implements ClientManager.ClientEventListener {
-        private ClientHandler clientHandler;
+    /**
+     * Custom event listener for handling client events.
+     */
+    static class CustomClientEventListener implements ClientManager.ClientEventListener
+    {
+        private IClientHandler clientHandler;
 
-        public void setClientHandler(ClientHandler clientHandler) {
+        public void setClientHandler(IClientHandler clientHandler)
+        {
             this.clientHandler = clientHandler;
         }
 
         @Override
-        public void onConnectedToServer() {
+        public void onConnectedToServer()
+        {
             SwingUtilities.invokeLater(() -> {
                 chatArea.append("Connected to the server.\n");
             });
             CompletableFuture.runAsync(() -> {
-                try {
+                try
+                {
                     Thread.sleep(2000);
-                    clientHandler.sendMessageToServer("");
-                } catch (InterruptedException e) {
+                    clientHandler.sendMessageToServer(""); // Send empty message to trigger key sharing
+                } 
+                catch (InterruptedException e)
+                {
                     e.printStackTrace();
                 }
             });
         }
 
         @Override
-        public void onMessageReceived(String message) {
+        public void onMessageReceived(String message)
+        {
             clientHandler.onMessageReceived(message);
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args)
+    {
         SwingUtilities.invokeLater(ClientApp::new);
     }
 }
