@@ -70,7 +70,8 @@ public class ServerHandler implements IServerHandler
     {
         int separatorIndex = message.lastIndexOf("#");
 
-        if (separatorIndex > 0) {
+        if (separatorIndex > 0) 
+        {
             String messageContent = message.substring(0, separatorIndex).trim();
             String senderPublishKey = message.substring(separatorIndex + 1).trim();
 

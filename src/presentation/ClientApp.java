@@ -20,7 +20,11 @@ import java.util.concurrent.CompletableFuture;
  */
 public class ClientApp extends JFrame
 {
-    private static int _height = 700;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private static int _height = 700;
     private static int _width = 450;
     private static JPanel chatArea; 
     JTextField textField;

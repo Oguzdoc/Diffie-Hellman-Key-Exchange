@@ -9,8 +9,8 @@ import java.security.SecureRandom;
  */
 public class DiffieHellmanKey
 {
-    private final BigInteger primeNumber = BigInteger.valueOf(227); // Prime number used in key generation
-    private final BigInteger primitiveRoot = BigInteger.valueOf(14); // Primitive root for the prime number
+    private final BigInteger primeNumber = new BigInteger("72057594037927931"); // Prime number used in key generation
+    private final BigInteger primitiveRoot = BigInteger.valueOf(2); // Primitive root for the prime number
     private final BigInteger privateNumber; // Random private number
     private final BigInteger publicKey; // Public key computed from the private number
     private BigInteger computedSecretKey = BigInteger.ZERO; // Shared secret key
@@ -65,7 +65,12 @@ public class DiffieHellmanKey
      */
     public BigInteger computeSecret(BigInteger otherPublicKey)
     {
+        System.out.println("otherPublicKey" + otherPublicKey );
+        System.out.println("privateNumber" + privateNumber );
+        System.out.println("primeNumber" + primeNumber );
+
         computedSecretKey = otherPublicKey.modPow(privateNumber, primeNumber);
+        System.out.println("computedSecretKey" + computedSecretKey );
         setComputeKeyBinary(computedSecretKey);
         return computedSecretKey;
     }

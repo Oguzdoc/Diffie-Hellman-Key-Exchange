@@ -87,6 +87,7 @@ public class ClientHandler implements IClientHandler
                 {
                     message = message.substring(0, message.length() - 1);
                     des.setKey(diffieHellmanKey.getComputeKeyBinary());
+                    System.out.println("KEY: " + diffieHellmanKey.getComputeKeyBinary());
                     message = des.decrypt(message);
                     ClientApp.onIncomingMessage(message);
                 } 

@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * managing client connections and forwarding messages.
  */
 public class ServerManager implements IServerManager {
-    private final ConcurrentHashMap<String, PrintWriter> clients = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, PrintWriter> clients = new ConcurrentHashMap<>();
     private final ServerEventListener eventListener;
 
     /**
@@ -107,7 +107,20 @@ public class ServerManager implements IServerManager {
     public Set<String> getConnectedClients() {
         return clients.keySet();
     }
-
+    
+    public ConcurrentHashMap<String, PrintWriter> getClients() {
+        return clients;
+    }
+    /**
+     * Adds a mock client to the clients map for testing purposes.
+     * 
+     * @param clientIdentifier The identifier of the client.
+     * @param writer           The PrintWriter instance associated with the client.
+     */
+    public void addMockClient(String clientIdentifier, PrintWriter writer) {
+        clients.put(clientIdentifier, writer);
+    }
+    
     /**
      * Interface for handling server events such as client connections and messages.
      */

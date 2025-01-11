@@ -13,7 +13,11 @@ import java.awt.*;
  */
 public class ServerApp extends JFrame
 {
-    private static JTextArea logArea; // Area to display incoming and outgoing messages
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private static JTextArea logArea; // Area to display incoming and outgoing messages
     private final IServerHandler serverHandler; // Use interface for abstraction
 
     public ServerApp()
